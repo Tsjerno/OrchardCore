@@ -28,7 +28,7 @@ namespace OrchardCore.OpenId.Controllers
         private readonly IHtmlLocalizer<ScopeController> H;
         private readonly IOpenIdScopeManager _scopeManager;
         private readonly ISiteService _siteService;
-        private readonly IShapeFactory _shapeFactory;
+        private readonly dynamic New;
         private readonly INotifier _notifier;
         private readonly ShellDescriptor _shellDescriptor;
         private readonly ShellSettings _shellSettings;
@@ -47,7 +47,7 @@ namespace OrchardCore.OpenId.Controllers
             IShellHost shellHost)
         {
             _scopeManager = scopeManager;
-            _shapeFactory = shapeFactory;
+            New = shapeFactory;
             _siteService = siteService;
             T = stringLocalizer;
             H = htmlLocalizer;
@@ -67,13 +67,11 @@ namespace OrchardCore.OpenId.Controllers
 
             var siteSettings = await _siteService.GetSiteSettingsAsync();
             var pager = new Pager(pagerParameters, siteSettings.PageSize);
+            var pagerShape = (await New.Pager(pager)).TotalItemCount(await _scopeManager.CountAsync());
 
             var model = new OpenIdScopeIndexViewModel
             {
-                Pager = await _shapeFactory.CreateAsync("Pager", new
-                {
-                    TotalItemCount = await _scopeManager.CountAsync()
-                })
+                Pager = pagerShape
             };
 
             foreach (var scope in await _scopeManager.ListAsync(pager.PageSize, pager.GetStartIndex()))
@@ -240,7 +238,7 @@ namespace OrchardCore.OpenId.Controllers
             descriptor.Name = model.Name;
 
             descriptor.Resources.Clear();
-            
+
             if (!string.IsNullOrEmpty(model.Resources))
             {
                 descriptor.Resources.UnionWith(model.Resources.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries));

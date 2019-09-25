@@ -31,7 +31,7 @@ namespace OrchardCore.OpenId.Controllers
         private readonly IStringLocalizer<ApplicationController> T;
         private readonly IHtmlLocalizer<ApplicationController> H;
         private readonly ISiteService _siteService;
-        private readonly IShapeFactory _shapeFactory;
+        private readonly dynamic New;
         private readonly IOpenIdApplicationManager _applicationManager;
         private readonly INotifier _notifier;
         private readonly ShellDescriptor _shellDescriptor;
@@ -46,7 +46,7 @@ namespace OrchardCore.OpenId.Controllers
             INotifier notifier,
             ShellDescriptor shellDescriptor)
         {
-            _shapeFactory = shapeFactory;
+            New = shapeFactory;
             _siteService = siteService;
             T = stringLocalizer;
             H = htmlLocalizer;
@@ -66,12 +66,11 @@ namespace OrchardCore.OpenId.Controllers
             var siteSettings = await _siteService.GetSiteSettingsAsync();
             var pager = new Pager(pagerParameters, siteSettings.PageSize);
 
+            var pagerShape = (await New.Pager(pager)).TotalItemCount(await _applicationManager.CountAsync());
+
             var model = new OpenIdApplicationsIndexViewModel
             {
-                Pager = await _shapeFactory.CreateAsync("Pager", new
-                {
-                    TotalItemCount = await _applicationManager.CountAsync()
-                })
+                Pager = pagerShape
             };
 
             foreach (var application in await _applicationManager.ListAsync(pager.PageSize, pager.GetStartIndex()))
@@ -201,7 +200,7 @@ namespace OrchardCore.OpenId.Controllers
                 select new Uri(uri, UriKind.Absolute));
 
             descriptor.RedirectUris.UnionWith(
-                from uri in model.RedirectUris?.Split(new[] { " ","," }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()
+                from uri in model.RedirectUris?.Split(new[] { " ", "," }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()
                 select new Uri(uri, UriKind.Absolute));
 
             descriptor.Roles.UnionWith(model.RoleEntries
